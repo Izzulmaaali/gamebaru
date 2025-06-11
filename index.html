@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Game Gajah buat fey</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom, #e0f7fa, #ffffff);
+      padding: 20px;
+      background-image: url(./hutan.png);
+      background-size: 1400px 850px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
+
+    h2 {
+        margin-bottom: 5px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    h3 {
+        margin-bottom: 40px;
+        margin-top: 5px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .game-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    #gajah, #anakGajah {
+      width: 250px;
+      transition: all 1s ease;
+    }
+
+    #anakGajah {
+      opacity: 0;
+      display: none;
+      transform: scale(0.5);
+    }
+
+    .bubble {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.7);
+      animation: float 2s ease-in-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-100px); opacity: 0; }
+    }
+
+    #status {
+      font-size: 20px;
+      margin: 20px;
+    }
+
+    button {
+      font-size: 18px;
+      padding: 10px 25px;
+      cursor: pointer;
+      background-color: #00bcd4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin: 5px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #0097a7;
+    }
+
+    @media (max-width: 600px) {
+      .game-container {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      #gajah, #anakGajah {
+        width: 180px;
+      }
+
+      .bubble {
+        width: 30px;
+        height: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🐘 Game Gajah melahirkan</h1>
+  <h2>beri makan gajah sehari 2 kali, jangan lupa mandikan ya</h2>
+  <h3>setelah hari ke 3 gajah akan melahirkan bayi imut seperti kamu</h3>
+  <div class="game-container" id="gameArea">
+    <img id="gajah" src="./gajah.png" alt="Gajah" />
+    <img id="anakGajah" src="./anak_gajah.png" alt="Anak Gajah" />
+  </div>
+
+  <div id="status">Gajah lapar. Beri dia makan!</div>
+  <button id="btnMakan" onclick="beriMakan()">🍌 Beri Makan</button>
+  <button id="btnMandi" onclick="mandikanGajah()" style="display: none">🛁 Mandi</button>
+  <button id="btnReset" onclick="resetGame()">🔄 Reset Game</button>
+
+  <audio id="makanSound" src="./audio/gajahmakan.mp3"></audio>
+  <audio id="mandiSound" src="./audio/gajahmandi.mp3"></audio>
+  <audio id="lahirSound" src="./audio/gajahbayi.mp3"></audio>
+
+  <script>
+    let hari = parseInt(localStorage.getItem('hari')) || 1;
+    let makanHariIni = parseInt(localStorage.getItem('makanHariIni')) || 0;
+    let totalHariMakan = parseInt(localStorage.getItem('totalHariMakan')) || 0;
+    let sudahMelahirkan = localStorage.getItem('sudahMelahirkan') === 'true';
+    let anakGajahLevel = parseInt(localStorage.getItem('anakGajahLevel')) || 0;
+    let lastTime = parseInt(localStorage.getItem('lastTime')) || Date.now();
+
+    const btnMakan = document.getElementById("btnMakan");
+    const btnMandi = document.getElementById("btnMandi");
+    const status = document.getElementById("status");
+    const anakGajah = document.getElementById("anakGajah");
+    const gajah = document.getElementById("gajah");
+    const gameArea = document.getElementById("gameArea");
+
+    function updateStatus() {
+      status.textContent = `Hari ke-${hari} | Makan ${makanHariIni}/2` +
+        (sudahMelahirkan ? ` | Anak Gajah Level ${anakGajahLevel}` : ` | Belum Melahirkan`);
+    }
+
+    function playSoundLimited(id) {
+      const sound = document.getElementById(id);
+      sound.currentTime = 0;
+      sound.play();
+      setTimeout(() => sound.pause(), 5000);
+    }
+
+    function cekHari() {
+      const now = Date.now();
+      if (now - lastTime >= 24 * 60 * 60 * 1000) {
+        hari++;
+        makanHariIni = 0;
+        lastTime = now;
+
+        localStorage.setItem('hari', hari);
+        localStorage.setItem('makanHariIni', makanHariIni);
+        localStorage.setItem('lastTime', lastTime);
+
+        btnMakan.style.display = "inline-block";
+        btnMandi.style.display = "none";
+      }
+    }
+
+    function beriMakan() {
+      cekHari();
+      if (makanHariIni >= 2) return;
+
+      makanHariIni++;
+      playSoundLimited("makanSound");
+      status.textContent = "Gajah sedang makan...";
+      btnMakan.disabled = true;
+
+      setTimeout(() => {
+        btnMakan.disabled = false;
+
+        if (makanHariIni === 2) {
+          totalHariMakan++;
+          btnMakan.style.display = "none";
+          btnMandi.style.display = "inline-block";
+
+          if (totalHariMakan >= 3 && !sudahMelahirkan) {
+            sudahMelahirkan = true;
+            anakGajahLevel = 1;
+            anakGajah.style.display = "block";
+            anakGajah.style.opacity = 1;
+            anakGajah.style.transform = "scale(0.5)";
+            playSoundLimited("lahirSound");
+          }
+
+          if (sudahMelahirkan && anakGajahLevel < 10) {
+            anakGajahLevel++;
+            const scale = 0.5 + anakGajahLevel * 0.1;
+            anakGajah.style.transform = `scale(${scale})`;
+          }
+        }
+
+        localStorage.setItem('makanHariIni', makanHariIni);
+        localStorage.setItem('totalHariMakan', totalHariMakan);
+        localStorage.setItem('sudahMelahirkan', sudahMelahirkan);
+        localStorage.setItem('anakGajahLevel', anakGajahLevel);
+        updateStatus();
+      }, 5000);
+    }
+
+    function mandikanGajah() {
+      if (makanHariIni < 2) return;
+      playSoundLimited("mandiSound");
+      status.textContent = "Gajah sedang mandi...";
+      showBubbles();
+
+      btnMandi.disabled = true;
+      setTimeout(() => {
+        btnMandi.disabled = false;
+        updateStatus();
+      }, 5000);
+    }
+
+    function showBubbles() {
+      const rect = gajah.getBoundingClientRect();
+      const gajahLeft = gajah.offsetLeft;
+
+      for (let i = 0; i < 7; i++) {
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.style.left = `${gajahLeft + 50 + Math.random() * 100}px`;
+        bubble.style.bottom = `120px`;
+        gameArea.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 2000);
+      }
+    }
+
+    function resetGame() {
+      localStorage.clear();
+      hari = 1;
+      makanHariIni = 0;
+      totalHariMakan = 0;
+      sudahMelahirkan = false;
+      anakGajahLevel = 0;
+      lastTime = Date.now();
+
+      anakGajah.style.opacity = 0;
+      anakGajah.style.transform = "scale(0.5)";
+      anakGajah.style.display = "none";
+
+      btnMakan.style.display = "inline-block";
+      btnMakan.disabled = false;
+      btnMandi.style.display = "none";
+      btnMandi.disabled = false;
+
+      updateStatus();
+    }
+
+    window.onload = () => {
+      cekHari();
+      if (sudahMelahirkan) {
+        anakGajah.style.display = "block";
+        anakGajah.style.opacity = 1;
+        anakGajah.style.transform = `scale(${0.5 + anakGajahLevel * 0.1})`;
+      }
+      updateStatus();
+    };
+  </script>
+</body>
+</html>
